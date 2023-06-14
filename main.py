@@ -7,10 +7,10 @@ from doctest import master
 customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("green")
 
-
 class TelaCadastro(customtkinter.CTkToplevel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, tela_login, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.tela_login = tela_login
         self.geometry("900x800")
         self.title("Clockin - Cadastro")
         self.config(bg='#D2DDF9')
@@ -61,15 +61,13 @@ class TelaCadastro(customtkinter.CTkToplevel):
                                                        font=font_link, command=self.open_telaLogin)
         self.login_link.place(relx=0.5, rely=0.7, anchor=tkinter.CENTER)
 
-        self.toplevel_window = None
-
         self.creator = customtkinter.CTkLabel(self, text='Criado por Caio Carvalho', text_color='#7D7987',
                                               bg_color='#D2DDF9', font=font_creator)
         self.creator.place(relx=0.5, rely=0.96, anchor=tkinter.CENTER)
 
     def open_telaLogin(self):
-        # self.destroy()  # Fechar a janela atual
-        # self.TelaLogin.deiconify()  # Exibir a janela anterior
+        self.destroy()  # Fecha janela atual
+        self.tela_login.deiconify() # Exibe janela anterior
 
 class TelaLogin(customtkinter.CTk):
     def __init__(self, *args, **kwargs):
@@ -125,12 +123,9 @@ class TelaLogin(customtkinter.CTk):
         self.creator.place(relx=0.5, rely=0.96, anchor=tkinter.CENTER)
 
     def open_telaCadastro(self):
-        if self.toplevel_window is None or not self.toplevel_window.winfo.exists():
-            self.toplevel_window = TelaCadastro(self)  # create window if its None or destroyed
-            TelaLogin.withdraw(self)
-        else:
-            self.toplevel_window.focus()  # if window exists focus it
-
+        self.withdraw() # fecha janela atual
+        tela_cadastro = TelaCadastro(self, self)
+        tela_cadastro.mainloop() # abre nova janela
 
 # Functions
 def clique():
@@ -139,7 +134,6 @@ def clique():
 
 def troca():
     print("Cadastro pronto")
-
 
 app = TelaLogin()
 app.mainloop()
