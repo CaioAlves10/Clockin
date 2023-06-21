@@ -32,7 +32,6 @@ def close_connection(conn):
         print('Conexão ao banco de dados fechada.')
 
 
-
 class TelaCadastro(customtkinter.CTkToplevel):
     def __init__(self, tela_login, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -117,6 +116,16 @@ class TelaLogin(customtkinter.CTk):
             else:
                 messagebox.showwarning('Aviso', 'Credenciais inválidas.')
 
+    def open_telaCadastro(self):
+        self.withdraw()  # fecha janela atual
+        tela_cadastro = TelaCadastro(self, self)
+        tela_cadastro.mainloop()  # abre nova janela
+
+    def open_batidaPonto(self):
+        self.withdraw()  # fecha janela atual
+        tela_batida_ponto = TelaBatidaPonto(self, self)
+        tela_batida_ponto.mainloop()  # abre nova janela
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.login = None
@@ -157,12 +166,13 @@ class TelaLogin(customtkinter.CTk):
         self.login = customtkinter.CTkEntry(master=frame, width=330, height=40, placeholder_text="Seu login")
         self.login.place(x=35, y=70)
 
-        self.password = customtkinter.CTkEntry(master=frame, width=330, height=40, placeholder_text="Sua senha", show="*")
+        self.password = customtkinter.CTkEntry(master=frame, width=330, height=40, placeholder_text="Sua senha",
+                                               show="*")
         self.password.place(x=35, y=130)
 
         login_button = customtkinter.CTkButton(master=frame, width=100, height=40, text='LOGIN', corner_radius=6,
                                                font=font_button, fg_color='#FAA115', hover_color='#FBA827',
-                                               command=self.logar)
+                                               command=self.open_batidaPonto)
         login_button.place(x=150, y=190)
 
         self.cadastro_link = customtkinter.CTkButton(self, text='CADASTRE-SE', text_color='#3F5B80',
@@ -176,10 +186,26 @@ class TelaLogin(customtkinter.CTk):
                                               bg_color='#D2DDF9', font=font_creator)
         self.creator.place(relx=0.5, rely=0.96, anchor=tkinter.CENTER)
 
-    def open_telaCadastro(self):
-        self.withdraw()  # fecha janela atual
-        tela_cadastro = TelaCadastro(self, self)
-        tela_cadastro.mainloop()  # abre nova janela
+
+class TelaBatidaPonto(customtkinter.CTkToplevel):
+    def __init__(self, tela_login, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.event = None
+        self.height = None
+        self.width = None
+        self.tela_login = tela_login
+        self.geometry("900x800")
+        self.title("Clockin - Batida de Ponto")
+        self.config(bg='#F9F9F9')
+
+        # Declarations
+
+        # Creation of elements
+        self.frame1 = customtkinter.CTkFrame(self, width=900, height=135, bg_color='#D2DDF9')
+        self.frame1.place(x=35, y=30)
+
+        self.title1 = customtkinter.CTkLabel(master=self.frame1, text='Logar:', text_color='#000')
+        self.title1.place(x=35, y=30)
 
 
 # Functions
