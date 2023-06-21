@@ -1,11 +1,37 @@
 import tkinter
+from tkinter import messagebox
 import customtkinter
 import tkinter.font
 from PIL import Image
 from doctest import master
+import mysql.connector
 
 customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("green")
+
+
+def connect():
+    try:
+        conn = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='',
+            database='clockin_db'
+        )
+        if conn.is_connected():
+            print('Conexão bem-sucedida ao banco de dados.')
+            return conn
+    except mysql.connector.Error as e:
+        print(f'Erro ao conectar no banco de dados: {e}')
+        messagebox.showerror('Erro', 'Erro ao conectar no banco de dados.')
+
+
+def close_connection(conn):
+    if conn.is_connected():
+        conn.close()
+        print('Conexão ao banco de dados fechada.')
+
+
 
 class TelaCadastro(customtkinter.CTkToplevel):
     def __init__(self, tela_login, *args, **kwargs):
@@ -39,7 +65,7 @@ class TelaCadastro(customtkinter.CTkToplevel):
         self.image_text_logo.place(relx=0.5, rely=0.27, anchor=tkinter.CENTER)
 
         self.frame = customtkinter.CTkFrame(self, width=400, height=255, corner_radius=15, fg_color='#F2F2F2',
-                                       bg_color='#D2DDF9')
+                                            bg_color='#D2DDF9')
         self.frame.place(relx=0.5, rely=0.5, anchor=tkinter.CENTER)
 
         self.title = customtkinter.CTkLabel(master=self.frame, text='Cadastrar:', text_color='#7D7987', font=font_title)
@@ -48,18 +74,20 @@ class TelaCadastro(customtkinter.CTkToplevel):
         self.login = customtkinter.CTkEntry(master=self.frame, width=330, height=40, placeholder_text="Seu login")
         self.login.place(x=35, y=70)
 
-        self.password = customtkinter.CTkEntry(master=self.frame, width=330, height=40, placeholder_text="Sua senha", show="*")
+        self.password = customtkinter.CTkEntry(master=self.frame, width=330, height=40, placeholder_text="Sua senha",
+                                               show="*")
         self.password.place(x=35, y=130)
 
-        self.cadastro_button = customtkinter.CTkButton(master=self.frame, width=100, height=40, text='CADASTRAR', corner_radius=6,
-                                               font=font_button, fg_color='#FAA115', hover_color='#FBA827',
-                                               command=troca)
+        self.cadastro_button = customtkinter.CTkButton(master=self.frame, width=100, height=40, text='CADASTRAR',
+                                                       corner_radius=6,
+                                                       font=font_button, fg_color='#FAA115', hover_color='#FBA827',
+                                                       command=troca)
         self.cadastro_button.place(x=150, y=190)
 
         self.login_link = customtkinter.CTkButton(self, text='LOGAR', text_color='#3F5B80',
-                                                       fg_color='transparent', bg_color='#D2DDF9', hover=False,
-                                                       font=font_link, command=self.open_telaLogin)
-        self.login_link.place(relx=0.5, rely=0.7, anchor=tkinter.CENTER)
+                                                  fg_color='transparent', bg_color='#D2DDF9', hover=False,
+                                                  font=font_link, command=self.open_telaLogin)
+        self.login_link.place(relx=0.5, rely=0.74, anchor=tkinter.CENTER)
 
         self.creator = customtkinter.CTkLabel(self, text='Criado por Caio Carvalho', text_color='#7D7987',
                                               bg_color='#D2DDF9', font=font_creator)
@@ -67,11 +95,31 @@ class TelaCadastro(customtkinter.CTkToplevel):
 
     def open_telaLogin(self):
         self.destroy()  # Fecha janela atual
-        self.tela_login.deiconify() # Exibe janela anterior
+        self.tela_login.deiconify()  # Exibe janela anterior
+
 
 class TelaLogin(customtkinter.CTk):
+    def logar(self):
+        login = self.login.get()
+        password = self.password.get()
+
+        conn = connect()
+        if conn:
+            cursor = conn.cursor()
+            query = "SELECT * FROM users WHERE login = %s AND senha = %s"
+            cursor.execute(query, (login, password))
+            user = cursor.fetchone()
+            cursor.close()
+            close_connection(conn)
+
+            if user:
+                messagebox.showinfo('Sucesso', 'Login bem-sucedido.')
+            else:
+                messagebox.showwarning('Aviso', 'Credenciais inválidas.')
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.login = None
         self.geometry("900x800")
         self.title("Clockin - Login")
         self.config(bg='#D2DDF9')
@@ -91,41 +139,48 @@ class TelaLogin(customtkinter.CTk):
                                            size=(130, 30))
 
         # Creation of elements
-        self.image_logo = customtkinter.CTkLabel(self, image=logo, text="", fg_color='#D2DDF9')  # display image with a CTkLabel
+        self.image_logo = customtkinter.CTkLabel(self, image=logo, text="",
+                                                 fg_color='#D2DDF9')  # display image with a CTkLabel
         self.image_logo.place(relx=0.5, rely=0.16, anchor=tkinter.CENTER)
 
-        self.image_text_logo = customtkinter.CTkLabel(self, image=text_logo, text="", fg_color='#D2DDF9')  # display image with a CTkLabel
+        self.image_text_logo = customtkinter.CTkLabel(self, image=text_logo, text="",
+                                                      fg_color='#D2DDF9')  # display image with a CTkLabel
         self.image_text_logo.place(relx=0.5, rely=0.27, anchor=tkinter.CENTER)
 
-        frame = customtkinter.CTkFrame(master=master, width=400, height=255, corner_radius=15, fg_color='#F2F2F2', bg_color='#D2DDF9')
+        frame = customtkinter.CTkFrame(master=master, width=400, height=255, corner_radius=15, fg_color='#F2F2F2',
+                                       bg_color='#D2DDF9')
         frame.place(relx=0.5, rely=0.5, anchor=tkinter.CENTER)
 
         title = customtkinter.CTkLabel(master=frame, text='Logar:', text_color='#7D7987', font=font_title)
         title.place(x=35, y=30)
 
-        login = customtkinter.CTkEntry(master=frame, width=330, height=40, placeholder_text="Seu login")
-        login.place(x=35, y=70)
+        self.login = customtkinter.CTkEntry(master=frame, width=330, height=40, placeholder_text="Seu login")
+        self.login.place(x=35, y=70)
 
-        password = customtkinter.CTkEntry(master=frame, width=330, height=40, placeholder_text="Sua senha", show="*")
-        password.place(x=35, y=130)
+        self.password = customtkinter.CTkEntry(master=frame, width=330, height=40, placeholder_text="Sua senha", show="*")
+        self.password.place(x=35, y=130)
 
-        login_button = customtkinter.CTkButton(master=frame, width=100, height=40, text='LOGIN', corner_radius=6, font=font_button, fg_color='#FAA115', hover_color='#FBA827',
-                                               command=clique)
+        login_button = customtkinter.CTkButton(master=frame, width=100, height=40, text='LOGIN', corner_radius=6,
+                                               font=font_button, fg_color='#FAA115', hover_color='#FBA827',
+                                               command=self.logar)
         login_button.place(x=150, y=190)
 
-        self.cadastro_link = customtkinter.CTkButton(self, text='CADASTRE-SE', text_color='#3F5B80', fg_color='transparent', bg_color='#D2DDF9', hover=False,
-                                                       font=font_link, command=self.open_telaCadastro)
-        self.cadastro_link.place(relx=0.5, rely=0.7, anchor=tkinter.CENTER)
+        self.cadastro_link = customtkinter.CTkButton(self, text='CADASTRE-SE', text_color='#3F5B80',
+                                                     fg_color='transparent', bg_color='#D2DDF9', hover=False,
+                                                     font=font_link, command=self.open_telaCadastro)
+        self.cadastro_link.place(relx=0.5, rely=0.74, anchor=tkinter.CENTER)
 
         self.toplevel_window = None
 
-        self.creator = customtkinter.CTkLabel(self, text='Criado por Caio Carvalho', text_color='#7D7987', bg_color='#D2DDF9', font=font_creator)
+        self.creator = customtkinter.CTkLabel(self, text='Criado por Caio Carvalho', text_color='#7D7987',
+                                              bg_color='#D2DDF9', font=font_creator)
         self.creator.place(relx=0.5, rely=0.96, anchor=tkinter.CENTER)
 
     def open_telaCadastro(self):
-        self.withdraw() # fecha janela atual
+        self.withdraw()  # fecha janela atual
         tela_cadastro = TelaCadastro(self, self)
-        tela_cadastro.mainloop() # abre nova janela
+        tela_cadastro.mainloop()  # abre nova janela
+
 
 # Functions
 def clique():
@@ -134,6 +189,7 @@ def clique():
 
 def troca():
     print("Cadastro pronto")
+
 
 app = TelaLogin()
 app.mainloop()
