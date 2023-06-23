@@ -85,14 +85,14 @@ class TelaCadastro(customtkinter.CTkToplevel):
 
         self.login_link = customtkinter.CTkButton(self, text='LOGAR', text_color='#3F5B80',
                                                   fg_color='transparent', bg_color='#D2DDF9', hover=False,
-                                                  font=font_link, command=self.open_telaLogin)
+                                                  font=font_link, command=self.open_tela_login)
         self.login_link.place(relx=0.5, rely=0.74, anchor=tkinter.CENTER)
 
         self.creator = customtkinter.CTkLabel(self, text='Criado por Caio Carvalho', text_color='#7D7987',
                                               bg_color='#D2DDF9', font=font_creator)
         self.creator.place(relx=0.5, rely=0.96, anchor=tkinter.CENTER)
 
-    def open_telaLogin(self):
+    def open_tela_login(self):
         self.destroy()  # Fecha janela atual
         self.tela_login.deiconify()  # Exibe janela anterior
 
@@ -116,12 +116,12 @@ class TelaLogin(customtkinter.CTk):
             else:
                 messagebox.showwarning('Aviso', 'Credenciais inválidas.')
 
-    def open_telaCadastro(self):
+    def open_tela_cadastro(self):
         self.withdraw()  # fecha janela atual
         tela_cadastro = TelaCadastro(self, self)
         tela_cadastro.mainloop()  # abre nova janela
 
-    def open_batidaPonto(self):
+    def open_batida_ponto(self):
         self.withdraw()  # fecha janela atual
         tela_batida_ponto = TelaBatidaPonto(self, self)
         tela_batida_ponto.mainloop()  # abre nova janela
@@ -172,12 +172,12 @@ class TelaLogin(customtkinter.CTk):
 
         login_button = customtkinter.CTkButton(master=frame, width=100, height=40, text='LOGIN', corner_radius=6,
                                                font=font_button, fg_color='#FAA115', hover_color='#FBA827',
-                                               command=self.open_batidaPonto)
+                                               command=self.open_batida_ponto)
         login_button.place(x=150, y=190)
 
         self.cadastro_link = customtkinter.CTkButton(self, text='CADASTRE-SE', text_color='#3F5B80',
                                                      fg_color='transparent', bg_color='#D2DDF9', hover=False,
-                                                     font=font_link, command=self.open_telaCadastro)
+                                                     font=font_link, command=self.open_tela_cadastro)
         self.cadastro_link.place(relx=0.5, rely=0.74, anchor=tkinter.CENTER)
 
         self.toplevel_window = None
@@ -190,22 +190,54 @@ class TelaLogin(customtkinter.CTk):
 class TelaBatidaPonto(customtkinter.CTkToplevel):
     def __init__(self, tela_login, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.event = None
-        self.height = None
-        self.width = None
         self.tela_login = tela_login
-        self.geometry("900x800")
+        self.geometry("1200x800")
         self.title("Clockin - Batida de Ponto")
         self.config(bg='#F9F9F9')
 
         # Declarations
+        font_title = customtkinter.CTkFont(family='', size=23, weight='bold')
+
+        logo = customtkinter.CTkImage(light_image=Image.open("images/logo-clockin.png"), size=(85, 85))
+        icon_clock_add_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-add-blue.png"),
+                                                     size=(53, 53))
+        icon_clock_checked_white = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-checked-white.png"),
+                                                          size=(53, 53))
+        icon_clock_schedule_white = customtkinter.CTkImage(light_image=Image.open("images/icon-view-schedule-white.png"), size=(53, 53))
+        icon_clock_logout_white = customtkinter.CTkImage(light_image=Image.open("images/icon-logout-white.png"),
+                                                         size=(53, 53))
 
         # Creation of elements
-        self.frame1 = customtkinter.CTkFrame(self, width=900, height=135, bg_color='#D2DDF9')
-        self.frame1.place(x=35, y=30)
 
-        self.title1 = customtkinter.CTkLabel(master=self.frame1, text='Logar:', text_color='#000')
-        self.title1.place(x=35, y=30)
+        # -- header --
+        self.header1 = customtkinter.CTkFrame(self, width=1990, height=130, fg_color='#D2DDF9', bg_color='#F9F9F9')
+        self.header1.place(relx=0.5, rely=0.06, anchor=tkinter.CENTER)
+
+        self.header = customtkinter.CTkFrame(self, width=900, height=130, fg_color='#D2DDF9', bg_color='#D2DDF9')
+        self.header.place(relx=0.5, rely=0.06, anchor=tkinter.CENTER)
+
+        self.title = customtkinter.CTkLabel(master=self.header, text='Batida de ponto', text_color='#3F5B80',
+                                            font=font_title)
+        self.title.place(x=49, y=53.5)
+
+        self.image_logo = customtkinter.CTkLabel(master=self.header, image=logo, text="", fg_color='#D2DDF9')
+        self.image_logo.place(x=760, y=22.5)
+
+        # --sidebar --
+        self.sidebar = customtkinter.CTkFrame(self, width=90, height=410, fg_color='#D2DDF9', bg_color='#F9F9F9')
+        self.sidebar.place(relx=0, rely=0.3)
+
+        self.icon_clock_add = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_add_blue, text="")
+        self.icon_clock_add.place(x=19, y=40)
+
+        self.icon_clock_checked = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_checked_white, text="")
+        self.icon_clock_checked.place(x=19, y=130)
+
+        self.icon_clock_schedule = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_schedule_white, text="")
+        self.icon_clock_schedule.place(x=19, y=220)
+
+        self.icon_clock_logout = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_logout_white, text="")
+        self.icon_clock_logout.place(x=19, y=310)
 
 
 # Functions
