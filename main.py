@@ -33,6 +33,10 @@ def close_connection(conn):
 
 
 class TelaCadastro(customtkinter.CTkToplevel):
+    def open_tela_login(self):
+        self.destroy()  # Fecha janela atual
+        self.tela_login.deiconify()  # Exibe janela anterior
+
     def __init__(self, tela_login, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tela_login = tela_login
@@ -92,10 +96,6 @@ class TelaCadastro(customtkinter.CTkToplevel):
                                               bg_color='#D2DDF9', font=font_creator)
         self.creator.place(relx=0.5, rely=0.96, anchor=tkinter.CENTER)
 
-    def open_tela_login(self):
-        self.destroy()  # Fecha janela atual
-        self.tela_login.deiconify()  # Exibe janela anterior
-
 
 class TelaLogin(customtkinter.CTk):
     def logar(self):
@@ -116,7 +116,7 @@ class TelaLogin(customtkinter.CTk):
             else:
                 messagebox.showwarning('Aviso', 'Credenciais inválidas.')
 
-    def open_tela_cadastro(self):
+    def open_cadastro(self):
         self.withdraw()  # fecha janela atual
         tela_cadastro = TelaCadastro(self, self)
         tela_cadastro.mainloop()  # abre nova janela
@@ -128,6 +128,9 @@ class TelaLogin(customtkinter.CTk):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.tela_batida_ponto = None
+        self.tela_login = None
+        self.tela_cadastro = None
         self.login = None
         self.geometry("900x800")
         self.title("Clockin - Login")
@@ -139,13 +142,9 @@ class TelaLogin(customtkinter.CTk):
         font_link = customtkinter.CTkFont(family='inter', size=13, weight='bold', underline=True)
         font_creator = customtkinter.CTkFont(family='inter', size=15)
 
-        logo = customtkinter.CTkImage(light_image=Image.open("images/logo-clockin.png"),
-                                      dark_image=Image.open("images/logo-clockin.png"),
-                                      size=(110, 110))
+        logo = customtkinter.CTkImage(light_image=Image.open("images/logo-clockin.png"), size=(110, 110))
 
-        text_logo = customtkinter.CTkImage(light_image=Image.open("images/text-clockin.png"),
-                                           dark_image=Image.open("images/text-clockin.png"),
-                                           size=(130, 30))
+        text_logo = customtkinter.CTkImage(light_image=Image.open("images/text-clockin.png"), size=(130, 30))
 
         # Creation of elements
         self.image_logo = customtkinter.CTkLabel(self, image=logo, text="",
@@ -177,7 +176,7 @@ class TelaLogin(customtkinter.CTk):
 
         self.cadastro_link = customtkinter.CTkButton(self, text='CADASTRE-SE', text_color='#3F5B80',
                                                      fg_color='transparent', bg_color='#D2DDF9', hover=False,
-                                                     font=font_link, command=self.open_tela_cadastro)
+                                                     font=font_link, command=self.open_cadastro)
         self.cadastro_link.place(relx=0.5, rely=0.74, anchor=tkinter.CENTER)
 
         self.toplevel_window = None
@@ -188,9 +187,30 @@ class TelaLogin(customtkinter.CTk):
 
 
 class TelaBatidaPonto(customtkinter.CTkToplevel):
-    def __init__(self, tela_login, *args, **kwargs):
+    def open_acerto_ponto(self):
+        self.withdraw()  # fecha janela atual
+        tela_acerto_ponto = TelaAcertoPonto(self, self, self)
+        tela_acerto_ponto.mainloop()  # abre nova janela
+
+    def open_folha_ponto(self):
+        self.withdraw()  # fecha janela atual
+        tela_folha_ponto = TelaFolhaPonto(self, self, self)  # criação da instância
+        tela_folha_ponto.mainloop()  # abre nova janela
+
+    def logout(self):
+        # Limpar informações de autenticação do usuário
+
+        # Fechar a janela atual
+        self.destroy()
+
+        # Criar e exibir a tela de login novamente
+        tela_login1 = TelaLogin()
+        tela_login1.mainloop()
+
+    def __init__(self, tela_login1, tela_folha_ponto, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.tela_login = tela_login
+        self.tela_folha_ponto = tela_folha_ponto
+        self.tela_login1 = tela_login1
         self.geometry("1200x800")
         self.title("Clockin - Batida de Ponto")
         self.config(bg='#F9F9F9')
@@ -199,32 +219,42 @@ class TelaBatidaPonto(customtkinter.CTkToplevel):
         font_title = customtkinter.CTkFont(family='', size=23, weight='bold')
 
         logo = customtkinter.CTkImage(light_image=Image.open("images/logo-clockin.png"), size=(85, 85))
-        icon_clock_add_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-add-blue.png"),
-                                                     size=(53, 53))
+
         icon_clock_checked_white = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-checked-white.png"),
-                                                          size=(53, 53))
-        icon_clock_schedule_white = customtkinter.CTkImage(light_image=Image.open("images/icon-view-schedule-white.png"), size=(53, 53))
+                                                          size=(52, 52))
+        icon_clock_schedule_white = customtkinter.CTkImage(light_image=Image.
+                                                           open("images/icon-view-schedule-white.png"), size=(52, 52))
         icon_clock_logout_white = customtkinter.CTkImage(light_image=Image.open("images/icon-logout-white.png"),
-                                                         size=(53, 53))
+                                                         size=(52, 52))
+
+        icon_clock_add_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-add-blue.png"),
+                                                     size=(52, 52))
+        icon_clock_checked_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-checked-blue.png"),
+                                                         size=(52, 52))
+        icon_clock_schedule_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-view-schedule-blue.png"),
+                                                          size=(52, 52))
+        icon_clock_logout_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-logout-blue.png"),
+                                                        size=(52, 52))
 
         # Creation of elements
 
         # -- header --
+        # gambiarra
         self.header1 = customtkinter.CTkFrame(self, width=1990, height=130, fg_color='#D2DDF9', bg_color='#F9F9F9')
         self.header1.place(relx=0.5, rely=0.06, anchor=tkinter.CENTER)
 
         self.header = customtkinter.CTkFrame(self, width=900, height=130, fg_color='#D2DDF9', bg_color='#D2DDF9')
         self.header.place(relx=0.5, rely=0.06, anchor=tkinter.CENTER)
 
-        self.title = customtkinter.CTkLabel(master=self.header, text='Batida de ponto', text_color='#3F5B80',
+        self.title = customtkinter.CTkLabel(master=self.header, text='Batida de Ponto', text_color='#3F5B80',
                                             font=font_title)
-        self.title.place(x=49, y=53.5)
+        self.title.place(x=49, y=63)
 
         self.image_logo = customtkinter.CTkLabel(master=self.header, image=logo, text="", fg_color='#D2DDF9')
-        self.image_logo.place(x=760, y=22.5)
+        self.image_logo.place(x=760, y=33)
 
         # --sidebar --
-        self.sidebar = customtkinter.CTkFrame(self, width=90, height=410, fg_color='#D2DDF9', bg_color='#F9F9F9')
+        self.sidebar = customtkinter.CTkFrame(self, width=90, height=400, fg_color='#D2DDF9', bg_color='#F9F9F9')
         self.sidebar.place(relx=0, rely=0.3)
 
         self.icon_clock_add = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_add_blue, text="")
@@ -233,14 +263,233 @@ class TelaBatidaPonto(customtkinter.CTkToplevel):
         self.icon_clock_checked = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_checked_white, text="")
         self.icon_clock_checked.place(x=19, y=130)
 
+        # evento é ativado quando mouse passa sobre a imagem
+        self.icon_clock_checked.bind("<Enter>", lambda event: self.icon_clock_checked.
+                                     configure(image=icon_clock_checked_blue))
+        # evento é ativado quando mouse sai da imagem
+        self.icon_clock_checked.bind("<Leave>", lambda event: self.icon_clock_checked.
+                                     configure(image=icon_clock_checked_white))
+        # função acontece quando é clicado na imagem
+        self.icon_clock_checked.bind("<Button-1>", lambda event: self.open_acerto_ponto())
+
         self.icon_clock_schedule = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_schedule_white, text="")
+        self.icon_clock_schedule.place(x=19, y=220)
+
+        self.icon_clock_schedule.bind("<Enter>", lambda event: self.icon_clock_schedule.
+                                      configure(image=icon_clock_schedule_blue))
+        self.icon_clock_schedule.bind("<Leave>", lambda event: self.icon_clock_schedule.
+                                      configure(image=icon_clock_schedule_white))
+        self.icon_clock_schedule.bind("<Button-1>", lambda event: self.open_folha_ponto())
+
+        self.icon_clock_logout = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_logout_white, text="")
+        self.icon_clock_logout.place(x=19, y=310)
+
+        self.icon_clock_logout.bind("<Enter>", lambda event: self.icon_clock_logout.
+                                    configure(image=icon_clock_logout_blue))
+        self.icon_clock_logout.bind("<Leave>", lambda event: self.icon_clock_logout.
+                                    configure(image=icon_clock_logout_white))
+        self.icon_clock_logout.bind("<Button-1>", lambda event: self.logout())
+
+
+class TelaAcertoPonto(customtkinter.CTkToplevel):
+    def open_batida_ponto(self):
+        self.withdraw()  # fecha janela atual
+        tela_batida_ponto = TelaBatidaPonto(self, self, self)  # criação da instância
+        tela_batida_ponto.mainloop()  # abre nova janela
+
+    def open_folha_ponto(self):
+        self.withdraw()  # fecha janela atual
+        tela_folha_ponto = TelaFolhaPonto(self, self, self)  # criação da instância
+        tela_folha_ponto.mainloop()  # abre nova janela
+
+    def open_login(self):
+        self.withdraw()  # fecha janela atual
+        tela_login = TelaLogin(self)
+        tela_login.mainloop()  # abre nova janela
+
+    def __init__(self, tela_batida_ponto, tela_login, tela_folha_ponto, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tela_folha_ponto = tela_folha_ponto
+        self.tela_batida_ponto = tela_batida_ponto
+        self.tela_login = tela_login
+        self.geometry("1200x800")
+        self.title("Clockin - Acerto de Ponto")
+        self.config(bg='#F9F9F9')
+
+        # Declarations
+        font_title = customtkinter.CTkFont(family='', size=23, weight='bold')
+
+        logo = customtkinter.CTkImage(light_image=Image.open("images/logo-clockin.png"), size=(85, 85))
+
+        icon_clock_add_white = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-add-white.png"),
+                                                      size=(52, 52))
+        icon_clock_schedule_white = customtkinter.CTkImage(light_image=Image.
+                                                           open("images/icon-view-schedule-white.png"), size=(52, 52))
+        icon_clock_logout_white = customtkinter.CTkImage(light_image=Image.open("images/icon-logout-white.png"),
+                                                         size=(52, 52))
+
+        icon_clock_add_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-add-blue.png"),
+                                                     size=(52, 52))
+        icon_clock_checked_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-checked-blue.png"),
+                                                         size=(52, 52))
+        icon_clock_schedule_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-view-schedule-blue.png"),
+                                                          size=(52, 52))
+        icon_clock_logout_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-logout-blue.png"),
+                                                        size=(52, 52))
+
+        # Creation of elements
+
+        # -- header --
+        # gambiarra
+        self.header12 = customtkinter.CTkFrame(self, width=1990, height=130, fg_color='#D2DDF9', bg_color='#F9F9F9')
+        self.header12.place(relx=0.5, rely=0.06, anchor=tkinter.CENTER)
+
+        self.header = customtkinter.CTkFrame(self, width=900, height=130, fg_color='#D2DDF9', bg_color='#D2DDF9')
+        self.header.place(relx=0.5, rely=0.06, anchor=tkinter.CENTER)
+
+        self.title = customtkinter.CTkLabel(master=self.header, text='Acerto de Ponto', text_color='#3F5B80',
+                                            font=font_title)
+        self.title.place(x=49, y=63)
+
+        self.image_logo = customtkinter.CTkLabel(master=self.header, image=logo, text="", fg_color='#D2DDF9')
+        self.image_logo.place(x=760, y=33)
+
+        # --sidebar --
+        self.sidebar = customtkinter.CTkFrame(self, width=90, height=400, fg_color='#D2DDF9', bg_color='#F9F9F9')
+        self.sidebar.place(relx=0, rely=0.3)
+
+        self.icon_clock_add = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_add_white, text="")
+        self.icon_clock_add.place(x=19, y=40)
+
+        # evento é ativado quando mouse passa sobre a imagem
+        self.icon_clock_add.bind("<Enter>", lambda event: self.icon_clock_add.configure(image=icon_clock_add_blue))
+        # evento é ativado quando mouse sai da imagem
+        self.icon_clock_add.bind("<Leave>", lambda event: self.icon_clock_add.configure(image=icon_clock_add_white))
+        # função acontece quando é clicado na imagem
+        self.icon_clock_add.bind("<Button-1>", lambda event: self.open_batida_ponto())
+
+        self.icon_clock_checked = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_checked_blue, text="")
+        self.icon_clock_checked.place(x=19, y=130)
+
+        self.icon_clock_schedule = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_schedule_white, text="")
+        self.icon_clock_schedule.place(x=19, y=220)
+
+        self.icon_clock_schedule.bind("<Enter>", lambda event: self.icon_clock_schedule.
+                                      configure(image=icon_clock_schedule_blue))
+        self.icon_clock_schedule.bind("<Leave>", lambda event: self.icon_clock_schedule.
+                                      configure(image=icon_clock_schedule_white))
+        self.icon_clock_schedule.bind("<Button-1>", lambda event: self.open_folha_ponto())
+
+        self.icon_clock_logout = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_logout_white, text="")
+        self.icon_clock_logout.place(x=19, y=310)
+
+        self.icon_clock_logout.bind("<Enter>", lambda event: self.icon_clock_logout.
+                                    configure(image=icon_clock_logout_blue))
+        self.icon_clock_logout.bind("<Leave>", lambda event: self.icon_clock_logout.
+                                    configure(image=icon_clock_logout_white))
+        # self.icon_clock_logout.bind("<Button-1>", lambda event: self.open_login())
+
+
+class TelaFolhaPonto(customtkinter.CTkToplevel):
+    def open_batida_ponto(self):
+        self.withdraw()  # fecha janela atual
+        tela_batida_ponto = TelaBatidaPonto(self, self, self)  # criação da instância
+        tela_batida_ponto.mainloop()  # abre nova janela
+
+    def open_acerto_ponto(self):
+        self.withdraw()  # fecha janela atual
+        tela_acerto_ponto = TelaAcertoPonto(self, self, self)  # criação da instância
+        tela_acerto_ponto.mainloop()  # abre nova janela
+
+    def __init__(self, tela_batida_ponto, tela_login, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tela_batida_ponto = tela_batida_ponto
+        self.tela_login = tela_login
+        self.geometry("1200x800")
+        self.title("Clockin - Folha de Ponto")
+        self.config(bg='#F9F9F9')
+
+        # Declarations
+        font_title = customtkinter.CTkFont(family='', size=23, weight='bold')
+
+        logo = customtkinter.CTkImage(light_image=Image.open("images/logo-clockin.png"), size=(85, 85))
+
+        icon_clock_add_white = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-add-white.png"),
+                                                      size=(52, 52))
+        icon_clock_checked_white = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-checked-white.png"),
+                                                          size=(52, 52))
+        icon_clock_logout_white = customtkinter.CTkImage(light_image=Image.open("images/icon-logout-white.png"),
+                                                         size=(52, 52))
+
+        icon_clock_add_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-add-blue.png"),
+                                                     size=(52, 52))
+        icon_clock_checked_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-clock-checked-blue.png"),
+                                                         size=(52, 52))
+        icon_clock_schedule_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-view-schedule-blue.png"),
+                                                          size=(52, 52))
+        icon_clock_logout_blue = customtkinter.CTkImage(light_image=Image.open("images/icon-logout-blue.png"),
+                                                        size=(52, 52))
+
+        # Creation of elements
+
+        # -- header --
+        # gambiarra
+        self.header1 = customtkinter.CTkFrame(self, width=1990, height=130, fg_color='#D2DDF9', bg_color='#F9F9F9')
+        self.header1.place(relx=0.5, rely=0.06, anchor=tkinter.CENTER)
+
+        self.header = customtkinter.CTkFrame(self, width=900, height=130, fg_color='#D2DDF9', bg_color='#D2DDF9')
+        self.header.place(relx=0.5, rely=0.06, anchor=tkinter.CENTER)
+
+        self.title = customtkinter.CTkLabel(master=self.header, text='Folha de Ponto', text_color='#3F5B80',
+                                            font=font_title)
+        self.title.place(x=49, y=63)
+
+        self.image_logo = customtkinter.CTkLabel(master=self.header, image=logo, text="", fg_color='#D2DDF9')
+        self.image_logo.place(x=760, y=33)
+
+        # --sidebar --
+        self.sidebar = customtkinter.CTkFrame(self, width=90, height=400, fg_color='#D2DDF9', bg_color='#F9F9F9')
+        self.sidebar.place(relx=0, rely=0.3)
+
+        self.icon_clock_add = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_add_white, text="")
+        self.icon_clock_add.place(x=19, y=40)
+
+        # evento é ativado quando mouse passa sobre a imagem
+        self.icon_clock_add.bind("<Enter>", lambda event: self.icon_clock_add.configure(image=icon_clock_add_blue))
+        # evento é ativado quando mouse sai da imagem
+        self.icon_clock_add.bind("<Leave>", lambda event: self.icon_clock_add.configure(image=icon_clock_add_white))
+        # função acontece quando é clicado na imagem
+        self.icon_clock_add.bind("<Button-1>", lambda event: self.open_batida_ponto())
+
+        self.icon_clock_checked = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_checked_white, text="")
+        self.icon_clock_checked.place(x=19, y=130)
+
+        self.icon_clock_checked.bind("<Enter>", lambda event: self.icon_clock_checked.
+                                     configure(image=icon_clock_checked_blue))
+        self.icon_clock_checked.bind("<Leave>", lambda event: self.icon_clock_checked.
+                                     configure(image=icon_clock_checked_white))
+        self.icon_clock_checked.bind("<Button-1>", lambda event: self.open_acerto_ponto())
+
+        self.icon_clock_schedule = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_schedule_blue, text="")
         self.icon_clock_schedule.place(x=19, y=220)
 
         self.icon_clock_logout = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_logout_white, text="")
         self.icon_clock_logout.place(x=19, y=310)
 
+        self.icon_clock_logout.bind("<Enter>", lambda event: self.icon_clock_logout.
+                                    configure(image=icon_clock_logout_blue))
+        self.icon_clock_logout.bind("<Leave>", lambda event: self.icon_clock_logout.
+                                    configure(image=icon_clock_logout_white))
+        # self.icon_clock_logout.bind("<Button-1>", lambda event: troca())
+
 
 # Functions
+if __name__ == "__main__":
+    # Criar a primeira janela de login
+    tela_login = TelaLogin()
+    tela_login.mainloop()
+
+
 def clique():
     print("Login realizado")
 
