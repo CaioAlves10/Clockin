@@ -1,16 +1,40 @@
-import tkinter
-import tkinter.font
-
 import customtkinter
 from PIL import Image
+import mysql.connector
+import tkinter as tk
+import tkinter.font
+from tkinter import messagebox
 
 customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("green")
 
 
+def connect():
+    try:
+        conn = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='year@2023.caio',
+            database='clockin_db'
+        )
+        if conn.is_connected():
+            print('Conexão bem-sucedida ao banco de dados.')
+            return conn
+    except mysql.connector.Error as e:
+        print(f'Erro ao conectar ao banco de dados: {e}')
+        messagebox.showerror('Erro', 'Erro ao conectar ao banco de dados.')
+
+
+def close_connection(conn):
+    if conn.is_connected():
+        conn.close()
+        print('Conexão ao banco de dados fechada.')
+
+
 class App(customtkinter.CTk):
     def __init__(self, root):
         super().__init__()
+        self.logar = None
         self.config = None
         self.current_page = None
         self.tela_cadastro = None
@@ -49,7 +73,6 @@ class App(customtkinter.CTk):
         logo = customtkinter.CTkImage(light_image=Image.open("images/logo-clockin.png"), size=(110, 110))
         text_logo = customtkinter.CTkImage(light_image=Image.open("images/text-clockin.png"), size=(130, 30))
 
-        # Declarations
         font_title_header = customtkinter.CTkFont(family='', size=23, weight='bold')
 
         logo_header = customtkinter.CTkImage(light_image=Image.open("images/logo-clockin.png"), size=(85, 85))
@@ -76,15 +99,17 @@ class App(customtkinter.CTk):
         # Adicionar widgets à page tela_login
         # Creation of elements
         self.bg_tela_login = customtkinter.CTkFrame(self.tela_login, width=30, height=255, corner_radius=15,
-                                            fg_color='#D2DDF9', bg_color='#D2DDF9')
+                                                    fg_color='#D2DDF9', bg_color='#D2DDF9')
         self.bg_tela_login.pack(fill='both')
 
         self.image_logo = customtkinter.CTkLabel(self.bg_tela_login, image=logo, text="",
-                                                 fg_color='#D2DDF9', bg_color='#D2DDF9')  # display image with a CTkLabel
+                                                 fg_color='#D2DDF9',
+                                                 bg_color='#D2DDF9')  # display image with a CTkLabel
         self.image_logo.pack(pady=(55, 0), ipadx=0, fill='both')
 
         self.image_text_logo = customtkinter.CTkLabel(self.bg_tela_login, image=text_logo, text="",
-                                                      fg_color='#D2DDF9', bg_color='#D2DDF9')  # display image with a CTkLabel
+                                                      fg_color='#D2DDF9',
+                                                      bg_color='#D2DDF9')  # display image with a CTkLabel
         self.image_text_logo.pack(pady=20, fill='both')
 
         self.frame_login = customtkinter.CTkFrame(self.bg_tela_login, width=400, height=255, corner_radius=15,
@@ -95,19 +120,20 @@ class App(customtkinter.CTk):
                                             font=font_title)
         self.title.place(x=35, y=30)
 
-        self.login = customtkinter.CTkEntry(master=self.frame_login, width=330, height=40, placeholder_text="Seu login")
-        self.login.place(x=35, y=70)
+        self.login_logar = customtkinter.CTkEntry(master=self.frame_login, width=330, height=40, placeholder_text="Seu login")
+        self.login_logar.place(x=35, y=70)
 
-        self.password = customtkinter.CTkEntry(master=self.frame_login, width=330, height=40,
+        self.password_logar = customtkinter.CTkEntry(master=self.frame_login, width=330, height=40,
                                                placeholder_text="Sua senha", show="*")
-        self.password.place(x=35, y=130)
+        self.password_logar.place(x=35, y=130)
 
         self.login_button = customtkinter.CTkButton(master=self.frame_login, width=100, height=40, text='LOGIN',
                                                     corner_radius=6, font=font_button, fg_color='#FAA115',
-                                                    hover_color='#FBA827', command=self.open_batida_ponto)
+                                                    hover_color='#FBA827', command=self.fazer_login)
         self.login_button.place(x=150, y=190)
 
-        self.cadastro_link = customtkinter.CTkButton(master=self.bg_tela_login, text='CADASTRE-SE', text_color='#3F5B80',
+        self.cadastro_link = customtkinter.CTkButton(master=self.bg_tela_login, text='CADASTRE-SE',
+                                                     text_color='#3F5B80',
                                                      fg_color='transparent', bg_color='#D2DDF9', hover=False,
                                                      font=font_link, command=self.open_cadastro)
         self.cadastro_link.pack(pady=(30, 0))
@@ -138,17 +164,18 @@ class App(customtkinter.CTk):
                                             font=font_title)
         self.title.place(x=35, y=30)
 
-        self.login = customtkinter.CTkEntry(master=self.frame_cadastro, width=330, height=40,
+        self.login_cadastrar = customtkinter.CTkEntry(master=self.frame_cadastro, width=330, height=40,
                                             placeholder_text="Seu login")
-        self.login.place(x=35, y=70)
+        self.login_cadastrar.place(x=35, y=70)
 
-        self.password = customtkinter.CTkEntry(master=self.frame_cadastro, width=330, height=40,
+        self.password_cadastrar = customtkinter.CTkEntry(master=self.frame_cadastro, width=330, height=40,
                                                placeholder_text="Sua senha", show="*")
-        self.password.place(x=35, y=130)
+        self.password_cadastrar.place(x=35, y=130)
 
         self.cadastro_button = customtkinter.CTkButton(master=self.frame_cadastro, width=100, height=40,
                                                        text='CADASTRAR', corner_radius=6, font=font_button,
-                                                       fg_color='#FAA115', hover_color='#FBA827')
+                                                       fg_color='#FAA115', hover_color='#FBA827',
+                                                       command=self.fazer_cadastro)
         self.cadastro_button.place(x=150, y=190)
 
         self.login_link = customtkinter.CTkButton(self.bg_tela_cadastro, text='LOGAR', text_color='#3F5B80',
@@ -260,10 +287,12 @@ class App(customtkinter.CTk):
 
         self.icon_clock_add_acerto.bind("<Button-1>", lambda event: self.open_batida_ponto())
 
-        self.icon_clock_checked_acerto = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_checked_blue, text="")
+        self.icon_clock_checked_acerto = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_checked_blue,
+                                                                text="")
         self.icon_clock_checked_acerto.place(x=19, y=122)
 
-        self.icon_clock_schedule_acerto = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_schedule_white, text="")
+        self.icon_clock_schedule_acerto = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_schedule_white,
+                                                                 text="")
         self.icon_clock_schedule_acerto.place(x=19, y=214)
 
         self.icon_clock_schedule_acerto.bind("<Enter>", lambda event: self.icon_clock_schedule_acerto.
@@ -272,7 +301,8 @@ class App(customtkinter.CTk):
                                              configure(image=icon_clock_schedule_white))
         self.icon_clock_schedule_acerto.bind("<Button-1>", lambda event: self.open_folha_ponto())
 
-        self.icon_clock_logout_acerto = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_logout_white, text="")
+        self.icon_clock_logout_acerto = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_logout_white,
+                                                               text="")
         self.icon_clock_logout_acerto.place(x=19, y=306)
 
         self.icon_clock_logout_acerto.bind("<Enter>", lambda event: self.icon_clock_logout_acerto.
@@ -320,7 +350,8 @@ class App(customtkinter.CTk):
 
         self.icon_clock_add_folha.bind("<Button-1>", lambda event: self.open_batida_ponto())
 
-        self.icon_clock_checked_folha = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_checked_white, text="")
+        self.icon_clock_checked_folha = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_checked_white,
+                                                               text="")
         self.icon_clock_checked_folha.place(x=19, y=122)
 
         self.icon_clock_checked_folha.bind("<Enter>", lambda event: self.icon_clock_checked_folha.
@@ -336,7 +367,7 @@ class App(customtkinter.CTk):
         self.icon_clock_schedule_folha.place(x=19, y=214)
 
         self.icon_clock_logout_folha = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_logout_white,
-                                                               text="")
+                                                              text="")
         self.icon_clock_logout_folha.place(x=19, y=306)
 
         self.icon_clock_logout_folha.bind("<Enter>", lambda event: self.icon_clock_logout_folha.
@@ -349,6 +380,83 @@ class App(customtkinter.CTk):
 
         # Mostrar a page inicial
         self.open_login()
+
+    def fazer_cadastro(self):
+        login = self.login_cadastrar.get()
+        password = self.password_cadastrar.get()
+
+        # Verificar se os campos não estão vazios
+        if not login or not password:
+            messagebox.showerror("Erro", "Preencha todos os campos.")
+            return
+
+        # Verificar se a senha tem pelo menos 8 caracteres
+        if len(password) < 8:
+            messagebox.showerror("Erro", "A senha deve ter no mínimo 8 caracteres")
+            return
+
+        try:
+            conn = connect()
+            cursor = conn.cursor()
+
+            # Verifica se o login já existe no banco de dados
+            query_verificar_login = "SELECT COUNT(*) FROM cadastro WHERE login = %s"
+            cursor.execute(query_verificar_login, (login,))
+            resultado = cursor.fetchone()
+
+            if resultado[0] > 0:
+                messagebox.showerror("Erro", "O login já está em uso.")
+                return
+
+            query = f"INSERT INTO cadastro (login, senha) VALUES (%s, %s)"
+            valores = (login, password)
+            cursor.execute(query, valores)
+            conn.commit()
+            cursor.close()
+            close_connection(conn)
+
+            messagebox.showinfo("Cadastro", "Cadastro realizado com sucesso!")
+
+            # Limpar os campos de entrada
+            self.login_cadastrar.delete(0, "end")
+            self.password_cadastrar.delete(0, "end")
+
+        except mysql.connector.Error as error:
+            messagebox.showerror("Erro", f"Não foi possível cadastrar: {error}")
+
+    def fazer_login(self):
+        login = self.login_logar.get()
+        password = self.password_logar.get()
+
+        # Verificar se os campos não estão vazios
+        if not login or not password:
+            messagebox.showerror("Erro", "Preencha todos os campos.")
+            return
+
+        try:
+            conn = connect()
+            cursor = conn.cursor()
+
+            # Verificar se o login e a senha coincidem no banco de dados
+            query_verificar_login_senha = "SELECT COUNT(*) FROM cadastro WHERE login = %s AND senha = %s"
+            cursor.execute(query_verificar_login_senha, (login, password))
+            resultado = cursor.fetchone()
+
+            if resultado[0] == 0:
+                messagebox.showerror("Erro", "Login e/ou senha incorretos.")
+                return
+
+            cursor.close()
+            close_connection(conn)
+
+            messagebox.showinfo("Login", "Login realizado com sucesso!")
+
+            # Limpar os campos de entrada
+            self.login_logar.delete(0, "end")
+            self.password_logar.delete(0, "end")
+
+        except mysql.connector.Error as error:
+            messagebox.showerror("Erro", f"Não foi possível fazer login: {error}")
 
     # add methods to app
     def open_login(self):
