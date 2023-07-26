@@ -2,6 +2,7 @@ import customtkinter
 from PIL import Image
 import mysql.connector
 import tkinter as tk
+from tkinter import ttk
 import tkinter.font
 from tkinter import messagebox
 
@@ -34,6 +35,9 @@ def close_connection(conn):
 class App(customtkinter.CTk):
     def __init__(self, root):
         super().__init__()
+        self.title_batida = None
+        self.batendo_ponto_button = None
+        self.tela_bater_ponto = None
         self.logar = None
         self.config = None
         self.current_page = None
@@ -138,7 +142,7 @@ class App(customtkinter.CTk):
                                                      font=font_link, command=self.open_cadastro)
         self.cadastro_link.pack(pady=(30, 0))
 
-        self.creator = customtkinter.CTkLabel(self.bg_tela_login, text='Criado por Caio Carvalho', text_color='#7D7987',
+        self.creator = customtkinter.CTkLabel(self.bg_tela_login, text='Criado por Caio Carvalho', text_color='#545454',
                                               bg_color='#D2DDF9', font=font_creator)
         self.creator.pack(pady=(130, 10), fill='both')
 
@@ -184,7 +188,7 @@ class App(customtkinter.CTk):
         self.login_link.pack(pady=(30, 0))
 
         self.creator = customtkinter.CTkLabel(self.bg_tela_cadastro, text='Criado por Caio Carvalho',
-                                              text_color='#7D7987', bg_color='#D2DDF9', font=font_creator)
+                                              text_color='#545454', bg_color='#D2DDF9', font=font_creator)
         self.creator.pack(pady=(130, 10))
 
         # Adicionar widgets à page tela_batida_ponto
@@ -211,9 +215,6 @@ class App(customtkinter.CTk):
         self.sidebar = customtkinter.CTkFrame(self.bg_tela_batida_ponto, width=90, height=408, fg_color='#D2DDF9',
                                               bg_color='#F9F9F9')
         self.sidebar.pack(side='left', pady=110, fill='both')
-
-        self.content = customtkinter.CTkFrame(self.bg_tela_batida_ponto, width=0, height=800, fg_color='#F9F9F9')
-        self.content.pack(fill='both', expand=True)
 
         self.icon_clock_add = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_add_blue, text="")
         self.icon_clock_add.place(x=19, y=30)
@@ -247,6 +248,66 @@ class App(customtkinter.CTk):
         self.icon_clock_logout.bind("<Leave>", lambda event: self.icon_clock_logout.
                                     configure(image=icon_clock_logout_white))
         self.icon_clock_logout.bind("<Button-1>", lambda event: self.open_login())
+
+        self.content = customtkinter.CTkFrame(self.bg_tela_batida_ponto, width=0, height=800, fg_color='#F9F9F9')
+        self.content.pack(fill='both', expand=True)
+
+        self.batidas_ponto_button = customtkinter.CTkButton(master=self.content, width=100, height=40, text='Ponto',
+                                                            corner_radius=6, font=font_button, fg_color='#FAA115',
+                                                            hover_color='#FBA827', command=self.bater_ponto)
+        self.batidas_ponto_button.pack(anchor='w', padx=100, pady=(50, 0))
+
+        self.frame_borda = customtkinter.CTkFrame(self.content, fg_color="#FDA721", bg_color="#F9F9F9")
+        self.frame_borda.pack(fill='both', expand=True, padx=100, pady=(20, 50))
+
+        # Estilizar a tabela
+        style = ttk.Style()
+        style.theme_use("default")
+
+        style.configure("Treeview",
+                        background="#FFFFFF",
+                        foreground="#000",
+                        rowheight=30,
+                        fieldbackground="#F2F2F2",
+                        bordercolor="#000",
+                        borderwidth=0,
+                        font=("Helvetica", 10))
+        style.map('Treeview', background=[('selected', '#FFD964')])
+
+        # Estilizar os cabeçalhos
+        style.configure("Treeview.Heading",
+                        background="#FDA721",
+                        foreground="white",
+                        relief="flat",
+                        font=("Helvetica", 10, "bold"))
+        style.map("Treeview.Heading",
+                  background=[('active', '#FDA721')])
+
+        # Criar um widget Treeview - tabela
+        self.table_batidas_ponto = ttk.Treeview(self.frame_borda, style="Treeview")
+        self.table_batidas_ponto["columns"] = ("col1", "col2", "col3")
+        self.table_batidas_ponto.heading("#0", text="ID")
+        self.table_batidas_ponto.heading("col1", text="DATA")
+        self.table_batidas_ponto.heading("col2", text="BATIDA")
+        self.table_batidas_ponto.heading("col3", text="STATUS")
+        # # Adicionar dados à tabela
+        self.table_batidas_ponto.insert(parent="", index="end", iid=1, values=(1, "João", 30, "São Paulo"))
+        self.table_batidas_ponto.insert(parent="", index="end", iid=2, values=(2, "Maria", 25, "Rio de Janeiro"))
+        self.table_batidas_ponto.insert(parent="", index="end", iid=3, values=(3, "Carlos", 28, "Belo Horizonte"))
+
+        self.scrollbar_x = customtkinter.CTkScrollbar(self.frame_borda, orientation="horizontal",
+                                                      button_color="#CFCFCF", button_hover_color="#D9D9D9",
+                                                      command=self.table_batidas_ponto.xview)
+        self.scrollbar_x.pack(side="bottom", fill="x")
+        self.table_batidas_ponto.configure(xscrollcommand=self.scrollbar_x.set)
+
+        self.scrollbar_y = customtkinter.CTkScrollbar(self.frame_borda, orientation="vertical",
+                                                      button_color="#CFCFCF", button_hover_color="#D9D9D9",
+                                                      command=self.table_batidas_ponto.yview)
+        self.scrollbar_y.pack(side="right", fill="y")
+        self.table_batidas_ponto.configure(yscrollcommand=self.scrollbar_y.set)
+
+        self.table_batidas_ponto.pack(fill='both', padx=5, pady=5, expand=True)
 
         # Adicionar widgets à page tela_acerto_ponto
         self.bg_tela_acerto_ponto = customtkinter.CTkFrame(self.tela_acerto_ponto, width=30, height=255,
@@ -455,8 +516,28 @@ class App(customtkinter.CTk):
             self.login_logar.delete(0, "end")
             self.password_logar.delete(0, "end")
 
+            self.show_page(2)
+
         except mysql.connector.Error as error:
             messagebox.showerror("Erro", f"Não foi possível fazer login: {error}")
+
+    def bater_ponto(self, font_button=None):
+        tela_bater_ponto = customtkinter.CTkToplevel(root)
+        tela_bater_ponto.title("Batida de Ponto")
+        tela_bater_ponto.geometry("400x300")
+
+        font_title = customtkinter.CTkFont(family='', size=20, weight='bold')
+        font_button = customtkinter.CTkFont(family='', size=14, weight='bold')
+
+        self.title_batida = customtkinter.CTkLabel(master=tela_bater_ponto, text='Nova batida', text_color='#3F5B80',
+                                                   font=font_title)
+        self.title_batida.pack(padx=30)
+
+        self.batendo_ponto_button = customtkinter.CTkButton(master=tela_bater_ponto, width=100, height=40,
+                                                            text='Bater ponto',
+                                                            corner_radius=6, font=font_button, fg_color='#FAA115',
+                                                            hover_color='#FBA827')
+        self.batendo_ponto_button.pack(side='bottom', pady=30)
 
     # add methods to app
     def open_login(self):
