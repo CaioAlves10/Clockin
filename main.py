@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font
 from tkinter import messagebox
+import datetime
 
 customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("green")
@@ -32,9 +33,30 @@ def close_connection(conn):
         print('Conexão ao banco de dados fechada.')
 
 
+def atualizar_status_batida(status):
+    try:
+        conn = connect()
+        cursor = conn.cursor()
+
+        # Atualizar o status na tabela
+        query = "UPDATE batidas_ponto SET status_ = %s WHERE status_ = %s"
+        valores = (status, "validando")
+        cursor.execute(query, valores)
+        conn.commit()
+
+        cursor.close()
+        close_connection(conn)
+
+    except Exception as e:
+        print(f"Erro ao atualizar o status da batida de ponto: {e}")
+
+
 class App(customtkinter.CTk):
     def __init__(self, root):
         super().__init__()
+        self.id_user = None
+        self.frame_horario = None
+        self.horario = None
         self.title_batida = None
         self.batendo_ponto_button = None
         self.tela_bater_ponto = None
@@ -124,11 +146,12 @@ class App(customtkinter.CTk):
                                             font=font_title)
         self.title.place(x=35, y=30)
 
-        self.login_logar = customtkinter.CTkEntry(master=self.frame_login, width=330, height=40, placeholder_text="Seu login")
+        self.login_logar = customtkinter.CTkEntry(master=self.frame_login, width=330, height=40,
+                                                  placeholder_text="Seu login")
         self.login_logar.place(x=35, y=70)
 
         self.password_logar = customtkinter.CTkEntry(master=self.frame_login, width=330, height=40,
-                                               placeholder_text="Sua senha", show="*")
+                                                     placeholder_text="Sua senha", show="*")
         self.password_logar.place(x=35, y=130)
 
         self.login_button = customtkinter.CTkButton(master=self.frame_login, width=100, height=40, text='LOGIN',
@@ -169,11 +192,11 @@ class App(customtkinter.CTk):
         self.title.place(x=35, y=30)
 
         self.login_cadastrar = customtkinter.CTkEntry(master=self.frame_cadastro, width=330, height=40,
-                                            placeholder_text="Seu login")
+                                                      placeholder_text="Seu login")
         self.login_cadastrar.place(x=35, y=70)
 
         self.password_cadastrar = customtkinter.CTkEntry(master=self.frame_cadastro, width=330, height=40,
-                                               placeholder_text="Sua senha", show="*")
+                                                         placeholder_text="Sua senha", show="*")
         self.password_cadastrar.place(x=35, y=130)
 
         self.cadastro_button = customtkinter.CTkButton(master=self.frame_cadastro, width=100, height=40,
@@ -254,7 +277,7 @@ class App(customtkinter.CTk):
 
         self.batidas_ponto_button = customtkinter.CTkButton(master=self.content, width=100, height=40, text='Ponto',
                                                             corner_radius=6, font=font_button, fg_color='#FAA115',
-                                                            hover_color='#FBA827', command=self.bater_ponto)
+                                                            hover_color='#FBA827', command=self.open_tela_bater_ponto)
         self.batidas_ponto_button.pack(anchor='w', padx=100, pady=(50, 0))
 
         self.frame_borda = customtkinter.CTkFrame(self.content, fg_color="#FDA721", bg_color="#F9F9F9")
@@ -285,15 +308,24 @@ class App(customtkinter.CTk):
 
         # Criar um widget Treeview - tabela
         self.table_batidas_ponto = ttk.Treeview(self.frame_borda, style="Treeview")
-        self.table_batidas_ponto["columns"] = ("col1", "col2", "col3")
-        self.table_batidas_ponto.heading("#0", text="ID")
-        self.table_batidas_ponto.heading("col1", text="DATA")
-        self.table_batidas_ponto.heading("col2", text="BATIDA")
-        self.table_batidas_ponto.heading("col3", text="STATUS")
-        # # Adicionar dados à tabela
-        self.table_batidas_ponto.insert(parent="", index="end", iid=1, values=(1, "João", 30, "São Paulo"))
-        self.table_batidas_ponto.insert(parent="", index="end", iid=2, values=(2, "Maria", 25, "Rio de Janeiro"))
-        self.table_batidas_ponto.insert(parent="", index="end", iid=3, values=(3, "Carlos", 28, "Belo Horizonte"))
+        self.table_batidas_ponto["columns"] = ("id_batida", "col1", "col2", "col3")
+
+        # Configurar as colunas para exibir o cabeçalho e definir o tamanho
+        self.table_batidas_ponto.column("#0", width=0, stretch=tk.NO)
+        self.table_batidas_ponto.column("id_batida", anchor=tk.CENTER, width=60)
+        self.table_batidas_ponto.column("col1", anchor=tk.CENTER, width=100)
+        self.table_batidas_ponto.column("col2", anchor=tk.CENTER, width=100)
+        self.table_batidas_ponto.column("col3", anchor=tk.CENTER, width=100)
+
+        # Defina os cabeçalhos das colunas
+        self.table_batidas_ponto.heading("#0", text="", anchor=tk.CENTER)
+        self.table_batidas_ponto.heading("id_batida", text="ID", anchor=tk.CENTER)
+        self.table_batidas_ponto.heading("col1", text="DATA", anchor=tk.CENTER)
+        self.table_batidas_ponto.heading("col2", text="BATIDA", anchor=tk.CENTER)
+        self.table_batidas_ponto.heading("col3", text="STATUS", anchor=tk.CENTER)
+
+        # Definir quais colunas devem ser exibidas (exceto a primeira que está vazia)
+        self.table_batidas_ponto["displaycolumns"] = ("id_batida", "col1", "col2", "col3")
 
         self.scrollbar_x = customtkinter.CTkScrollbar(self.frame_borda, orientation="horizontal",
                                                       button_color="#CFCFCF", button_hover_color="#D9D9D9",
@@ -507,10 +539,18 @@ class App(customtkinter.CTk):
                 messagebox.showerror("Erro", "Login e/ou senha incorretos.")
                 return
 
+            query_pegar_id_user = "SELECT id_user FROM cadastro WHERE login = %s"
+            cursor.execute(query_pegar_id_user, (login,))
+            id_user = cursor.fetchone()[0]
+
+            self.id_user = id_user
+
             cursor.close()
             close_connection(conn)
 
             messagebox.showinfo("Login", "Login realizado com sucesso!")
+
+            self.atualizar_tabela_batidas_ponto()
 
             # Limpar os campos de entrada
             self.login_logar.delete(0, "end")
@@ -521,23 +561,134 @@ class App(customtkinter.CTk):
         except mysql.connector.Error as error:
             messagebox.showerror("Erro", f"Não foi possível fazer login: {error}")
 
-    def bater_ponto(self, font_button=None):
-        tela_bater_ponto = customtkinter.CTkToplevel(root)
-        tela_bater_ponto.title("Batida de Ponto")
-        tela_bater_ponto.geometry("400x300")
+    def open_tela_bater_ponto(self):
+        self.tela_bater_ponto = customtkinter.CTkToplevel(root)
+        self.tela_bater_ponto.title("Batida de Ponto")
+        self.tela_bater_ponto.geometry("400x300")
+        self.tela_bater_ponto.config(bg='#FFFFFF')
 
-        font_title = customtkinter.CTkFont(family='', size=20, weight='bold')
+        font_title = customtkinter.CTkFont(family='', size=25, weight='bold')
         font_button = customtkinter.CTkFont(family='', size=14, weight='bold')
 
-        self.title_batida = customtkinter.CTkLabel(master=tela_bater_ponto, text='Nova batida', text_color='#3F5B80',
-                                                   font=font_title)
-        self.title_batida.pack(padx=30)
+        self.title_batida = customtkinter.CTkLabel(master=self.tela_bater_ponto, text='Nova batida', text_color='#3F5B80',
+                                                   bg_color='#FFFFFF', font=font_title)
+        self.title_batida.pack(pady=(20, 0))
 
-        self.batendo_ponto_button = customtkinter.CTkButton(master=tela_bater_ponto, width=100, height=40,
-                                                            text='Bater ponto',
-                                                            corner_radius=6, font=font_button, fg_color='#FAA115',
-                                                            hover_color='#FBA827')
-        self.batendo_ponto_button.pack(side='bottom', pady=30)
+        self.frame_horario = customtkinter.CTkFrame(master=self.tela_bater_ponto, corner_radius=6, fg_color='#F2F2F2',
+                                                    bg_color='#FFFFFF')
+        self.frame_horario.pack(anchor='center', pady=45)
+
+        # Rótulo para mostrar o horário atual em tempo real
+        self.horario = customtkinter.CTkLabel(master=self.frame_horario, text="", font=("Helvetica", 50))
+        self.horario.pack(padx=10, pady=10)
+
+        self.batendo_ponto_button = customtkinter.CTkButton(master=self.tela_bater_ponto, width=100, height=40,
+                                                            text='Bater ponto', corner_radius=6, font=font_button,
+                                                            fg_color='#FAA115', hover_color='#FBA827',
+                                                            command=self.nova_batida)
+        self.batendo_ponto_button.pack(side='bottom', pady=(0, 20))
+
+        # Atualizar o rótulo com o horário atual em tempo real
+        self.root.after(1000, self.mostrar_horario_atual)
+
+    def mostrar_horario_atual(self):
+        horario_atual = datetime.datetime.now().strftime("%H:%M:%S")
+        self.horario.configure(text=horario_atual)
+        root.after(1000, self.mostrar_horario_atual)  # Atualizar a cada 1000 milissegundos (1 segundo)
+
+    def nova_batida(self):
+        # Obter o dia e o horário atual
+        dia_atual = datetime.datetime.now().strftime("%Y-%m-%d")
+        horario_atual = datetime.datetime.now().strftime("%H:%M:%S")
+
+        tipo = "entrada"
+        status = "validando"
+
+        try:
+            conn = connect()
+            cursor = conn.cursor()
+
+            # Verificar se o usuário já realizou batidas no dia atual
+            query_verificar_batidas = \
+                "SELECT tipo, hora FROM batidas_ponto WHERE id_user = %s AND dia = %s ORDER BY id_batida DESC LIMIT 1"
+            cursor.execute(query_verificar_batidas, (self.id_user, dia_atual))
+            resultado = cursor.fetchone()
+
+            # Se já existir batida para o usuário no dia atual, alternar o valor do atributo "tipo"
+            if resultado:
+                tipo_anterior = resultado[0]
+                print("Resultado da consulta:", resultado)
+                tipo = "saida" if tipo_anterior == "entrada" else "entrada"
+
+                # Obter o horário da última batida
+                hora_ultima_batida = resultado[1]
+                # Converter timedelta para string no formato HH:MM:SS
+                hora_ultima_batida_str = str(hora_ultima_batida)
+                # Converter a string hora_ultima_batida_str para o tipo time
+                hora_ultima_batida_obj = datetime.datetime.strptime(hora_ultima_batida_str, "%H:%M:%S").time()
+
+                # Converter a string horario_atual para o tipo time
+                horario_atual_obj = datetime.datetime.strptime(horario_atual, "%H:%M:%S").time()
+
+                # Verificar a diferença de tempo entre a última batida e o horário atual
+                diff_horarios = datetime.datetime.combine(datetime.date.min, horario_atual_obj) - datetime.datetime.combine(datetime.date.min, hora_ultima_batida_obj)
+
+                # Se a diferença for menor que 15 minutos, não permitir a batida
+                if diff_horarios.total_seconds() < 15 * 60:
+                    self.tela_bater_ponto.destroy()
+                    messagebox.showerror("Erro", "Não é permitido bater o ponto com menos de 15 minutos de intervalo.")
+                    return
+
+            # Inserir os valores na tabela
+            query = "INSERT INTO batidas_ponto (id_user, dia, hora, tipo, status_) VALUES (%s, %s, %s,%s, %s)"
+            valores = (self.id_user, dia_atual, horario_atual, tipo, status)
+            cursor.execute(query, valores)
+            conn.commit()
+
+            cursor.close()
+            close_connection(conn)
+
+            # Atualizar o status para "ok" após a inserção bem-sucedida
+            atualizar_status_batida("ok")
+            print("Batida de ponto registrada com sucesso!")
+
+            self.atualizar_tabela_batidas_ponto()
+            self.tela_bater_ponto.destroy()
+
+        except Exception as e:
+            print(f"Erro ao registrar a batida de ponto: {e}")
+            # Atualizar o status para "erro" em caso de erro na inserção
+            atualizar_status_batida("erro")
+
+    def atualizar_tabela_batidas_ponto(self):
+        # Limpar os dados existentes na tabela
+        self.table_batidas_ponto.delete(*self.table_batidas_ponto.get_children())
+
+        try:
+            conn = connect()
+            cursor = conn.cursor()
+
+            # Consultar as batidas de ponto do usuário
+            query_consulta_batidas = \
+                "SELECT id_batida, dia, hora, tipo, status_ FROM batidas_ponto WHERE id_user = %s ORDER BY id_batida DESC"
+            cursor.execute(query_consulta_batidas, (self.id_user,))
+            resultados = cursor.fetchall()
+
+            # Inserir os dados na tabela
+            for resultado in resultados:
+                id_batida = resultado[0]
+                dia_formatado = resultado[1].strftime("%d/%m/%Y")
+                hora_formatada = resultado[2].strftime("%H:%M:%S") if isinstance(resultado[2], datetime.time) else \
+                    str(resultado[2])
+                status = resultado[4]
+
+                self.table_batidas_ponto.insert("", "end", values=(id_batida, dia_formatado, hora_formatada, status))
+
+            cursor.close()
+            close_connection(conn)
+
+        except Exception as e:
+            print(f"Erro ao consultar as batidas de ponto: {e}")
 
     # add methods to app
     def open_login(self):
