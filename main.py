@@ -6,6 +6,7 @@ from tkinter import ttk
 import tkinter.font
 from tkinter import messagebox
 import datetime
+from tkcalendar import Calendar
 
 customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("green")
@@ -54,6 +55,18 @@ def atualizar_status_batida(status):
 class App(customtkinter.CTk):
     def __init__(self, root):
         super().__init__()
+        self.motivo = None
+        self.subtitle_motivo = None
+        self.frame_hora_entrada = None
+        self.saida = None
+        self.subtitle_saida = None
+        self.frame_hora_saida = None
+        self.entrada = None
+        self.subtitle_entrada = None
+        self.calendar = None
+        self.subtitle_data = None
+        self.fazendo_acerto_button = None
+        self.title_acerto = None
         self.id_user = None
         self.frame_horario = None
         self.horario = None
@@ -366,9 +379,6 @@ class App(customtkinter.CTk):
                                               bg_color='#F9F9F9')
         self.sidebar.pack(side='left', pady=110, fill='both')
 
-        self.content = customtkinter.CTkFrame(self.bg_tela_acerto_ponto, width=0, height=800, fg_color='#F9F9F9')
-        self.content.pack(fill='both', expand=True)
-
         self.icon_clock_add_acerto = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_add_white, text="")
         self.icon_clock_add_acerto.place(x=19, y=30)
 
@@ -403,6 +413,56 @@ class App(customtkinter.CTk):
         self.icon_clock_logout_acerto.bind("<Leave>", lambda event: self.icon_clock_logout_acerto.
                                            configure(image=icon_clock_logout_white))
         self.icon_clock_logout_acerto.bind("<Button-1>", lambda event: self.open_login())
+
+        self.content = customtkinter.CTkFrame(self.bg_tela_acerto_ponto, width=0, height=800, fg_color='#F9F9F9')
+        self.content.pack(fill='both', expand=True)
+
+        self.acerto_ponto_button = customtkinter.CTkButton(master=self.content, width=100, height=40, text='Acerto',
+                                                           corner_radius=6, font=font_button, fg_color='#FAA115',
+                                                           hover_color='#FBA827', command=self.open_tela_acerto_ponto)
+        self.acerto_ponto_button.pack(anchor='w', padx=100, pady=(50, 0))
+
+        self.frame_borda = customtkinter.CTkFrame(self.content, fg_color="#FDA721", bg_color="#F9F9F9")
+        self.frame_borda.pack(fill='both', expand=True, padx=100, pady=(20, 50))
+
+        # Criar um widget Treeview - tabela
+        self.table_acertos_ponto = ttk.Treeview(self.frame_borda, style="Treeview")
+        self.table_acertos_ponto["columns"] = ("id_acerto", "col1", "col2", "col3", "col4", "col5")
+
+        # Configurar as colunas para exibir o cabeçalho e definir o tamanho
+        self.table_acertos_ponto.column("#0", width=0, stretch=tk.NO)
+        self.table_acertos_ponto.column("id_acerto", anchor=tk.CENTER, width=60)
+        self.table_acertos_ponto.column("col1", anchor=tk.CENTER, width=100)
+        self.table_acertos_ponto.column("col2", anchor=tk.CENTER, width=100)
+        self.table_acertos_ponto.column("col3", anchor=tk.CENTER, width=100)
+        self.table_acertos_ponto.column("col4", anchor=tk.CENTER, width=100)
+        self.table_acertos_ponto.column("col5", anchor=tk.CENTER, width=100)
+
+        # Definir os cabeçalhos das colunas
+        self.table_acertos_ponto.heading("#0", text="", anchor=tk.CENTER)
+        self.table_acertos_ponto.heading("id_acerto", text="ID", anchor=tk.CENTER)
+        self.table_acertos_ponto.heading("col1", text="DATA ACERTO", anchor=tk.CENTER)
+        self.table_acertos_ponto.heading("col2", text="ENTRADA", anchor=tk.CENTER)
+        self.table_acertos_ponto.heading("col3", text="SAIDA", anchor=tk.CENTER)
+        self.table_acertos_ponto.heading("col4", text="MOTIVO", anchor=tk.CENTER)
+        self.table_acertos_ponto.heading("col5", text="STATUS", anchor=tk.CENTER)
+
+        # Definir quais colunas devem ser exibidas (exceto a primeira que está vazia)
+        self.table_acertos_ponto["displaycolumns"] = ("id_acerto", "col1", "col2", "col3", "col4", "col5")
+
+        self.scrollbar_x = customtkinter.CTkScrollbar(self.frame_borda, orientation="horizontal",
+                                                      button_color="#CFCFCF", button_hover_color="#D9D9D9",
+                                                      command=self.table_acertos_ponto.xview)
+        self.scrollbar_x.pack(side="bottom", fill="x")
+        self.table_acertos_ponto.configure(xscrollcommand=self.scrollbar_x.set)
+
+        self.scrollbar_y = customtkinter.CTkScrollbar(self.frame_borda, orientation="vertical",
+                                                      button_color="#CFCFCF", button_hover_color="#D9D9D9",
+                                                      command=self.table_acertos_ponto.yview)
+        self.scrollbar_y.pack(side="right", fill="y")
+        self.table_acertos_ponto.configure(yscrollcommand=self.scrollbar_y.set)
+
+        self.table_acertos_ponto.pack(fill='both', padx=5, pady=5, expand=True)
 
         # Adicionar widgets à page tela_folha_ponto
         self.bg_tela_folha_ponto = customtkinter.CTkFrame(self.tela_folha_ponto, width=30, height=255,
@@ -551,6 +611,7 @@ class App(customtkinter.CTk):
             messagebox.showinfo("Login", "Login realizado com sucesso!")
 
             self.atualizar_tabela_batidas_ponto()
+            self.atualizar_tabela_acertos_ponto()
 
             # Limpar os campos de entrada
             self.login_logar.delete(0, "end")
@@ -689,6 +750,144 @@ class App(customtkinter.CTk):
 
         except Exception as e:
             print(f"Erro ao consultar as batidas de ponto: {e}")
+
+    def open_tela_acerto_ponto(self):
+        self.tela_acerto_ponto = customtkinter.CTkToplevel(root)
+        self.tela_acerto_ponto.title("Acerto de Ponto")
+        self.tela_acerto_ponto.geometry("500x700")
+        self.tela_acerto_ponto.config(bg='#FFFFFF')
+
+        font_title = customtkinter.CTkFont(family='', size=25, weight='bold')
+        font_subtitle = customtkinter.CTkFont(family='', size=18, weight='bold')
+        font_button = customtkinter.CTkFont(family='', size=14, weight='bold')
+
+        self.title_acerto = customtkinter.CTkLabel(master=self.tela_acerto_ponto, text='Novo acerto',
+                                                   text_color='#3F5B80', bg_color='#FFFFFF', font=font_title)
+        self.title_acerto.pack(pady=(40, 0))
+
+        self.subtitle_data = customtkinter.CTkLabel(master=self.tela_acerto_ponto, text='Selecione a data do acerto:',
+                                                    text_color='#545454', bg_color='#FFFFFF', font=font_subtitle)
+        self.subtitle_data.pack(pady=(30, 0))
+
+        self.calendar = Calendar(master=self.tela_acerto_ponto, selectmode="day", date_pattern="yyyy-mm-dd")
+        self.calendar.pack(pady=20)
+
+        self.frame_hora_entrada = customtkinter.CTkFrame(master=self.tela_acerto_ponto, width=800, height=200,
+                                                         fg_color="#FFFFFF")
+        self.frame_hora_entrada.pack(pady=(0, 20))
+
+        self.subtitle_entrada = customtkinter.CTkLabel(master=self.frame_hora_entrada, text="Entrada:",
+                                                       text_color='#545454', bg_color='#FFFFFF', font=font_subtitle)
+        self.subtitle_entrada.pack(side='left')
+
+        self.entrada = customtkinter.CTkComboBox(master=self.frame_hora_entrada, bg_color="#FFFFFF",
+                                                 values=self.get_hour_list(), width=100, state="readonly")
+        self.entrada.pack(side='left', padx=(21, 0))
+
+        self.frame_hora_saida = customtkinter.CTkFrame(master=self.tela_acerto_ponto, width=800, height=200,
+                                                       fg_color="#FFFFFF")
+        self.frame_hora_saida.pack(pady=(0, 20))
+
+        self.subtitle_saida = customtkinter.CTkLabel(master=self.frame_hora_saida, text="Saída:",
+                                                     text_color='#545454', bg_color='#FFFFFF', font=font_subtitle)
+        self.subtitle_saida.pack(side='left')
+
+        self.saida = customtkinter.CTkComboBox(master=self.frame_hora_saida, bg_color="#FFFFFF",
+                                               values=self.get_hour_list(), width=100, state="readonly")
+        self.saida.pack(side='left', padx=(41, 0))
+
+        self.subtitle_motivo = customtkinter.CTkLabel(master=self.tela_acerto_ponto, text="Motivo:",
+                                                      text_color='#545454', bg_color='#FFFFFF', font=font_subtitle)
+        self.subtitle_motivo.pack(padx=(0, 131))
+
+        self.motivo = customtkinter.CTkTextbox(master=self.tela_acerto_ponto, width=250, height=100, corner_radius=6,
+                                               border_width=2, fg_color="#F6F6F6", border_color="#D3D3D3")
+        self.motivo.pack(pady=(10, 20))
+
+        self.fazendo_acerto_button = customtkinter.CTkButton(master=self.tela_acerto_ponto, width=100, height=40,
+                                                             text='Fazer ponto', corner_radius=6, font=font_button,
+                                                             fg_color='#FAA115', hover_color='#FBA827',
+                                                             command=self.novo_acerto)
+        self.fazendo_acerto_button.pack(side='bottom', pady=(0, 40))
+
+    def get_hour_list(self):
+        hours = []
+        for hour in range(24):
+            hours.append(f"{hour:02}:00")
+        return hours
+
+    def novo_acerto(self):
+        data_acerto = self.calendar.get_date()
+        entrada = self.entrada.get()
+        saida = self.saida.get()
+        motivo = self.motivo.get("0.0", "end")
+
+        print("Data selecionada:", data_acerto)
+        print("Hora entrada:", entrada)
+        print("Hora saida:", saida)
+        print("Motivo:", motivo)
+
+        id_user = self.id_user
+
+        # Verificar se os campos não estão vazios
+        if not data_acerto or not entrada or not saida:
+            messagebox.showerror("Erro", "Preencha todos os campos.")
+            return
+
+        status = "pendente"
+
+        try:
+            conn = connect()
+            cursor = conn.cursor()
+
+            query = \
+                f"INSERT INTO acertos_ponto (id_user, data_acerto, entrada, saida, motivo, status_) VALUES (%s, %s, %s, %s, %s, %s)"
+            valores = (id_user, data_acerto, entrada, saida, motivo, status)
+            cursor.execute(query, valores)
+            conn.commit()
+
+            cursor.close()
+            close_connection(conn)
+
+            messagebox.showinfo("Acerto de ponto", "Acerto realizado com sucesso. Aguarde a aprovação do gestor.")
+
+            self.atualizar_tabela_acertos_ponto()
+            self.tela_acerto_ponto.destroy()
+
+        except Exception as e:
+            print(f"Erro ao realizar o acerto de ponto: {e}")
+            messagebox.showerror("Erro", "Ocorreu um erro ao registrar o acerto de ponto. Por favor, tente novamente.")
+
+    def atualizar_tabela_acertos_ponto(self):
+        # Limpar os dados existentes na tabela
+        self.table_acertos_ponto.delete(*self.table_acertos_ponto.get_children())
+
+        try:
+            conn = connect()
+            cursor = conn.cursor()
+
+            # Consultar os acertos de ponto do usuário
+            query_consulta_acertos = \
+                "SELECT id_acerto, data_acerto, entrada, saida, motivo, status_, id_user FROM acertos_ponto WHERE id_user = %s ORDER BY id_acerto DESC"
+            cursor.execute(query_consulta_acertos, (self.id_user,))
+            resultados = cursor.fetchall()
+
+            for resultado in resultados:
+                id_acerto = resultado[0]
+                data_acerto = resultado[1].strftime("%d/%m/%Y")
+                entrada = resultado[2]
+                saida = resultado[3]
+                motivo = resultado[4]
+                status = resultado[5]
+                id_user = resultado[6]
+
+                self.table_acertos_ponto.insert("", "end", values=(id_acerto, data_acerto, entrada, saida, motivo, status, id_user))
+
+            cursor.close()
+            close_connection(conn)
+
+        except Exception as e:
+            print(f"Erro ao consultar os acertos de ponto: {e}")
 
     # add methods to app
     def open_login(self):
