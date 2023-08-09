@@ -3,10 +3,13 @@ from PIL import Image
 import mysql.connector
 import tkinter as tk
 from tkinter import ttk
-import tkinter.font
 from tkinter import messagebox
 import datetime
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from tkcalendar import Calendar
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, Spacer, Paragraph
 
 customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("green")
@@ -50,6 +53,85 @@ def atualizar_status_batida(status):
 
     except Exception as e:
         print(f"Erro ao atualizar o status da batida de ponto: {e}")
+
+
+def gerar_pdf_folha_ponto(batidas_por_dia):
+    meses_em_portugues = {
+        1: "Janeiro",
+        2: "Fevereiro",
+        3: "Março",
+        4: "Abril",
+        5: "Maio",
+        6: "Junho",
+        7: "Julho",
+        8: "Agosto",
+        9: "Setembro",
+        10: "Outubro",
+        11: "Novembro",
+        12: "Dezembro"
+    }
+
+    mes_atual = datetime.datetime.now().month
+    nome_mes_atual = meses_em_portugues[mes_atual]
+
+    data_table = [["Data", "Entrada", "Saída"]]  # Cabeçalho da tabela
+
+    for dia, hora_entrada, hora_saida in batidas_por_dia:
+        data_formatada = dia.strftime("%d/%m/%Y")
+
+        if hora_entrada == "-":
+            hora_entrada_formatada = "-"
+        else:
+            hora_entrada_obj = datetime.datetime.combine(dia, datetime.time()) + hora_entrada
+            hora_entrada_formatada = hora_entrada_obj.strftime("%H:%M:%S")
+
+        if hora_saida == "-":
+            hora_saida_formatada = "-"
+        else:
+            hora_saida_obj = datetime.datetime.combine(dia, datetime.time()) + hora_saida
+            hora_saida_formatada = hora_saida_obj.strftime("%H:%M:%S")
+
+        data_table.append([data_formatada, hora_entrada_formatada, hora_saida_formatada])
+
+        # Configurar o estilo do PDF
+        styles = getSampleStyleSheet()
+        style_title = styles['Title']
+        style_assinatura = ParagraphStyle(
+            'AssinaturaStyle',
+            parent=styles['Normal'],
+            fontSize=13,
+            alignment=1
+        )
+
+        # Criar o documento PDF
+        pdf_filename = "folha_de_ponto.pdf"
+        doc = SimpleDocTemplate(pdf_filename, pagesize=letter)
+        elements = [
+            Spacer(0, 20),
+            Paragraph("Folha de Ponto - Mês de " + nome_mes_atual, style_title),
+            Spacer(0, 20),
+            Table(data_table, style=[
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ], colWidths=[130, 130, 130]),  # Aqui definimos as larguras das colunas
+            Spacer(0, 20),
+            Paragraph("Assinatura: _______________________________", style_assinatura)
+        ]
+
+        doc.build(elements)
+        print(f"PDF gerado: {pdf_filename}")
+
+
+def get_hour_list():
+    hours = []
+    for hour in range(24):
+        hours.append(f"{hour:02}:00")
+    return hours
 
 
 class App(customtkinter.CTk):
@@ -489,9 +571,6 @@ class App(customtkinter.CTk):
                                               bg_color='#F9F9F9')
         self.sidebar.pack(side='left', pady=110, fill='both')
 
-        self.content = customtkinter.CTkFrame(self.bg_tela_folha_ponto, width=0, height=800, fg_color='#F9F9F9')
-        self.content.pack(fill='both', expand=True)
-
         self.icon_clock_add_folha = customtkinter.CTkLabel(master=self.sidebar, image=icon_clock_add_white, text="")
         self.icon_clock_add_folha.place(x=19, y=30)
 
@@ -530,6 +609,14 @@ class App(customtkinter.CTk):
                                           configure(image=icon_clock_logout_white))
 
         self.icon_clock_logout_folha.bind("<Button-1>", lambda event: self.open_login())
+
+        self.content = customtkinter.CTkFrame(self.bg_tela_folha_ponto, width=0, height=800, fg_color='#F9F9F9')
+        self.content.pack(fill='both', expand=True)
+
+        self.folha_ponto_button = customtkinter.CTkButton(master=self.content, width=100, height=40, text='Ver',
+                                                           corner_radius=6, font=font_button, fg_color='#FAA115',
+                                                           hover_color='#FBA827', command=self.teste)
+        self.folha_ponto_button.pack(anchor='w', padx=100, pady=(50, 0))
 
         # Mostrar a page inicial
         self.open_login()
@@ -781,7 +868,7 @@ class App(customtkinter.CTk):
         self.subtitle_entrada.pack(side='left')
 
         self.entrada = customtkinter.CTkComboBox(master=self.frame_hora_entrada, bg_color="#FFFFFF",
-                                                 values=self.get_hour_list(), width=100, state="readonly")
+                                                 values=get_hour_list(), width=100, state="readonly")
         self.entrada.pack(side='left', padx=(21, 0))
 
         self.frame_hora_saida = customtkinter.CTkFrame(master=self.tela_acerto_ponto, width=800, height=200,
@@ -793,7 +880,7 @@ class App(customtkinter.CTk):
         self.subtitle_saida.pack(side='left')
 
         self.saida = customtkinter.CTkComboBox(master=self.frame_hora_saida, bg_color="#FFFFFF",
-                                               values=self.get_hour_list(), width=100, state="readonly")
+                                               values=get_hour_list(), width=100, state="readonly")
         self.saida.pack(side='left', padx=(41, 0))
 
         self.subtitle_motivo = customtkinter.CTkLabel(master=self.tela_acerto_ponto, text="Motivo:",
@@ -805,16 +892,10 @@ class App(customtkinter.CTk):
         self.motivo.pack(pady=(10, 20))
 
         self.fazendo_acerto_button = customtkinter.CTkButton(master=self.tela_acerto_ponto, width=100, height=40,
-                                                             text='Fazer ponto', corner_radius=6, font=font_button,
+                                                             text='Fazer acerto', corner_radius=6, font=font_button,
                                                              fg_color='#FAA115', hover_color='#FBA827',
                                                              command=self.novo_acerto)
         self.fazendo_acerto_button.pack(side='bottom', pady=(0, 40))
-
-    def get_hour_list(self):
-        hours = []
-        for hour in range(24):
-            hours.append(f"{hour:02}:00")
-        return hours
 
     def novo_acerto(self):
         data_acerto = self.calendar.get_date()
@@ -888,6 +969,48 @@ class App(customtkinter.CTk):
 
         except Exception as e:
             print(f"Erro ao consultar os acertos de ponto: {e}")
+
+    def teste(self):
+        try:
+            # Obter o mês atual
+            mes_atual = datetime.datetime.now().month
+
+            conn = connect()
+            cursor = conn.cursor()
+
+            # Obter os dados da tabela batidas_ponto
+            query = "SELECT dia, hora, tipo FROM batidas_ponto WHERE id_user = %s AND MONTH(dia) = %s"
+            cursor.execute(query, (self.id_user, mes_atual))
+            batidas_por_dia = cursor.fetchall()
+
+            # Fechar a conexão com o banco de dados
+            cursor.close()
+            conn.close()
+
+            # Converter os dados para o formato desejado
+            dados_formatados = []
+            for dia, hora, tipo in batidas_por_dia:
+                if tipo == "entrada":
+                    dados_formatados.append([dia, hora, "-"])  # Usar "-" para indicar a falta da saída
+                else:
+                    # Encontrar o índice correspondente à entrada anterior
+                    indice_entrada = None
+                    for i in range(len(dados_formatados) - 1, -1, -1):
+                        if dados_formatados[i][0] == dia and dados_formatados[i][2] == "-":
+                            indice_entrada = i
+                            break
+
+                    if indice_entrada is not None:
+                        dados_formatados[indice_entrada][2] = hora  # Preencher a hora de saída
+
+            # Gerar o PDF da folha de ponto
+            gerar_pdf_folha_ponto(dados_formatados)
+
+            messagebox.showinfo("Folha Ponto", "Folha ponto baixada com sucesso!")
+
+        except Exception as e:
+            print(f"Erro ao consultar as batidas de ponto: {e}")
+            return []
 
     # add methods to app
     def open_login(self):
