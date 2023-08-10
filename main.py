@@ -898,21 +898,26 @@ class App(customtkinter.CTk):
         self.fazendo_acerto_button.pack(side='bottom', pady=(0, 40))
 
     def novo_acerto(self):
-        data_acerto = self.calendar.get_date()
+        # data_acerto = self.calendar.get_date()
+        data_acerto_str = self.calendar.get_date()
         entrada = self.entrada.get()
         saida = self.saida.get()
         motivo = self.motivo.get("0.0", "end")
 
-        print("Data selecionada:", data_acerto)
-        print("Hora entrada:", entrada)
-        print("Hora saida:", saida)
-        print("Motivo:", motivo)
-
         id_user = self.id_user
 
         # Verificar se os campos não estão vazios
-        if not data_acerto or not entrada or not saida:
+        if not data_acerto_str or not entrada or not saida:
             messagebox.showerror("Erro", "Preencha todos os campos.")
+            return
+
+        # Converter a string data_acerto_str para um objeto datetime.date
+        data_acerto = datetime.datetime.strptime(data_acerto_str, "%Y-%m-%d").date()
+
+        # Verificar se a data selecionada é anterior ao dia atual
+        data_atual = datetime.date.today()
+        if data_acerto >= data_atual:
+            messagebox.showerror("Erro", "A data de acerto deve ser anterior ao dia atual.")
             return
 
         status = "pendente"
