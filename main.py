@@ -137,6 +137,8 @@ def get_hour_list():
 class App(customtkinter.CTk):
     def __init__(self, root):
         super().__init__()
+        self.botao_imprimir = None
+        self.frame_botoes = None
         self.motivo = None
         self.subtitle_motivo = None
         self.frame_hora_entrada = None
@@ -385,12 +387,12 @@ class App(customtkinter.CTk):
         style.configure("Treeview",
                         background="#FFFFFF",
                         foreground="#000",
-                        rowheight=30,
+                        rowheight=35,
                         fieldbackground="#F2F2F2",
                         bordercolor="#000",
                         borderwidth=0,
                         font=("Helvetica", 10))
-        style.map('Treeview', background=[('selected', '#FFD964')])
+        style.map('Treeview', background=[('selected', 'white')], foreground=[('selected', '#000')])
 
         # Estilizar os cabeçalhos
         style.configure("Treeview.Heading",
@@ -613,10 +615,35 @@ class App(customtkinter.CTk):
         self.content = customtkinter.CTkFrame(self.bg_tela_folha_ponto, width=0, height=800, fg_color='#F9F9F9')
         self.content.pack(fill='both', expand=True)
 
-        self.folha_ponto_button = customtkinter.CTkButton(master=self.content, width=100, height=40, text='Ver',
-                                                           corner_radius=6, font=font_button, fg_color='#FAA115',
-                                                           hover_color='#FBA827', command=self.teste)
-        self.folha_ponto_button.pack(anchor='w', padx=100, pady=(50, 0))
+        # self.folha_ponto_button = customtkinter.CTkButton(master=self.content, width=100, height=40, text='Ver',
+        #                                                    corner_radius=6, font=font_button, fg_color='#FAA115',
+        #                                                    hover_color='#FBA827', command=self.gerar_pdf)
+        # self.folha_ponto_button.pack(anchor='w', padx=100, pady=(50, 0))
+
+        self.frame_borda = customtkinter.CTkFrame(self.content, fg_color="#FDA721", bg_color="#F9F9F9")
+        self.frame_borda.pack(fill='both', expand=True, padx=100, pady=(110, 50))
+
+        # Criar um widget Treeview - tabela
+        self.table_folhas_ponto = ttk.Treeview(self.frame_borda, style="Treeview")
+        self.table_folhas_ponto["columns"] = ("mes_ano", "botao")
+
+        # Configurar as colunas para exibir o cabeçalho e definir o tamanho
+        self.table_folhas_ponto.column("#0", width=0, stretch=tk.NO)
+        self.table_folhas_ponto.column("mes_ano", anchor=tk.CENTER, width=60)
+        self.table_folhas_ponto.column("botao", anchor=tk.CENTER, width=100)
+
+        # Definir os cabeçalhos das colunas
+        self.table_folhas_ponto.heading("#0", text="", anchor=tk.CENTER)
+        self.table_folhas_ponto.heading("mes_ano", text="REFERÊNCIA", anchor=tk.CENTER)
+        self.table_folhas_ponto.heading("botao", text="", anchor=tk.CENTER)
+
+        # Definir quais colunas devem ser exibidas (exceto a primeira que está vazia)
+        self.table_folhas_ponto["displaycolumns"] = ("mes_ano", "botao")
+
+        self.frame_pai = tk.Frame(self.table_folhas_ponto, bg="white", width=80, height=412)
+        self.frame_pai.pack(anchor="ne", pady=(18, 0), padx=(0, 100))
+
+        self.table_folhas_ponto.pack(fill='both', padx=5, pady=5, expand=True)
 
         # Mostrar a page inicial
         self.open_login()
@@ -699,6 +726,7 @@ class App(customtkinter.CTk):
 
             self.atualizar_tabela_batidas_ponto()
             self.atualizar_tabela_acertos_ponto()
+            self.add_linhas_mensais()
 
             # Limpar os campos de entrada
             self.login_logar.delete(0, "end")
@@ -975,17 +1003,21 @@ class App(customtkinter.CTk):
         except Exception as e:
             print(f"Erro ao consultar os acertos de ponto: {e}")
 
-    def teste(self):
+    def gerar_pdf(self, mes, ano):
         try:
-            # Obter o mês atual
             mes_atual = datetime.datetime.now().month
+            ano_atual = datetime.datetime.now().year
+
+            if ano > ano_atual or (ano == ano_atual and mes > mes_atual):
+                messagebox.showerror("Erro", "Não é possível gerar a folha ponto para um mês futuro.")
+                return
 
             conn = connect()
             cursor = conn.cursor()
 
             # Obter os dados da tabela batidas_ponto
             query = "SELECT dia, hora, tipo FROM batidas_ponto WHERE id_user = %s AND MONTH(dia) = %s"
-            cursor.execute(query, (self.id_user, mes_atual))
+            cursor.execute(query, (self.id_user, mes))
             batidas_por_dia = cursor.fetchall()
 
             # Fechar a conexão com o banco de dados
@@ -1016,6 +1048,41 @@ class App(customtkinter.CTk):
         except Exception as e:
             print(f"Erro ao consultar as batidas de ponto: {e}")
             return []
+
+    def imprimir_folha_ponto(self, mes_ano):
+        mes, ano = map(int, mes_ano.split("/"))
+        self.gerar_pdf(mes, ano)
+
+    def add_linhas_mensais(self):
+        mes_atual = datetime.datetime.now().month
+        ano_atual = datetime.datetime.now().year
+
+        font_button = customtkinter.CTkFont(family='', size=13, weight='bold')
+
+        # Iterar por todos os meses do ano atual
+        for mes in range(1, 13):
+            if mes >= mes_atual:
+                mes_ano = f"{mes:02d}/{ano_atual}"
+                self.table_folhas_ponto.insert("", "end", values=(mes_ano, ""))
+
+                self.frame_botoes = tk.Frame(self.frame_pai, bg="white", width=80)
+                self.frame_botoes.pack(pady=3)
+
+                self.botao_imprimir = customtkinter.CTkButton(self.frame_botoes, text="Imprimir", bg_color="white",
+                                                              fg_color="#00BB4B", width=80, font=font_button,
+                                                              command=lambda m=mes_ano: self.imprimir_folha_ponto(m))
+                self.botao_imprimir.pack()
+
+                self.table_folhas_ponto.tag_configure(mes_ano, background="white")
+                self.table_folhas_ponto.tag_bind(mes_ano, "<Button-1>",
+                                                 lambda event, arg=mes_ano: self.on_table_click(event, arg))
+
+    def on_table_click(self, event, mes_ano):
+        item = self.table_folhas_ponto.identify_region(event.x, event.y)
+        if item == "cell":
+            coluna = self.table_folhas_ponto.identify_column(event.x)
+            if coluna == "#2":
+                self.imprimir_folha_ponto(mes_ano)
 
     # add methods to app
     def open_login(self):
